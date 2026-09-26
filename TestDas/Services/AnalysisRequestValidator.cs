@@ -44,4 +44,3 @@ public class AnalysisRequestValidator : AbstractValidator<AnalysisRequest>
         return  !checkAesKeyLength || written == AesKeyLength;
     }
 }
-

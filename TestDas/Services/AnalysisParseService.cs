@@ -1,8 +1,11 @@
 ﻿using System.Security.Cryptography;
 using System.Text;
 using System.Text.RegularExpressions;
+using AngleSharp.Dom;
+using AngleSharp.Html.Dom;
 using AngleSharp.Html.Parser;
 using TestDas.Models;
+using Element = TestDas.Models.Element;
 
 namespace TestDas.Services
 {
@@ -12,7 +15,7 @@ namespace TestDas.Services
             @"\b[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}\b",
             RegexOptions.Compiled | RegexOptions.CultureInvariant);
 
-        public async Task<AnalysisResponse> ParseAsync(AnalysisRequest request)
+        public async Task<ParseResult> ParseAsync(AnalysisRequest request)
         {
             try
             {
@@ -20,50 +23,63 @@ namespace TestDas.Services
                 var page = GetStringFromB64(request.Page_B64);
 
                 
-                var selectorResult = await GetSelectorResult(page, request.Selector, request.Attribute);
+                var htmlCollection = await GetHtmlCollection(page, request.Selector);
 
-                var decryptedText = GetStringFromEncryptedB64(request.Encrypted_Text_Bytes_B64 ,request.Key_Bytes_B64);   
+                var elements = GetElements(htmlCollection, request.Attribute);
 
-                var emailList = EmailRegex.Matches(page)
-                    .Select(e => e.Value)
-                    .ToList();
+                var elementsValues = GetElementValues(elements);
+  
+                var decryptedText = GetStringFromEncryptedB64(request.Encrypted_Text_Bytes_B64 ,request.Key_Bytes_B64);
 
-                return new AnalysisResponse
+                var emailList = GetEmails(page);
+
+                var analysisResponse = new AnalysisResponse
                 {
-                    Elements_Count = selectorResult.Count,
+                    Elements_Count = htmlCollection.Count,
                     Emails_Count = emailList.Count,
                     Url = url,
                     Decrypted_Plain_Text = decryptedText,
-                    Elements_Attr_List = selectorResult.ElementValues,
+                    Elements_Attr_List = elementsValues,
                     Emails_List = emailList
+                };
+
+                return new ParseResult
+                {
+                    Analysis = analysisResponse,
+                    Elements = elements
                 };
 
             }
             catch (Exception exception)
             {
-                return new AnalysisResponse
+                return new ParseResult
                 {
-                    Is_Error = 1,
-                    Error_Code = exception.GetType().Name,
-                    Error_Message = exception.Message
+                    Analysis = new AnalysisResponse
+                    {
+                        Is_Error = 1,
+                        Error_Code = exception.GetType().Name,
+                        Error_Message = exception.Message
+                    },
+                    Elements = []
                 };
             }
         }
 
-        private static async Task<SelectorResult> GetSelectorResult(string htmlText, string selector, string attribute)
+        private static List<Element> GetElements(IHtmlCollection<IElement> htmlCollection, string attribute)
+        {
+            return htmlCollection.Select(e => new Element
+            {
+                HtmlText = e.OuterHtml,
+                ValueAttribute = e.GetAttribute(attribute) ?? string.Empty
+            }).ToList();
+        }
+
+        private static async Task<IHtmlCollection<IElement>> GetHtmlCollection(string htmlText, string selector)
         {
             var parser = new HtmlParser();
             var document = await parser.ParseDocumentAsync(htmlText);
-            var elements = document.QuerySelectorAll(selector);
-            var elementValues = elements.Select(e => e.GetAttribute(attribute))
-                                                    .Where(v => v != null)
-                                                    .ToList();
 
-            return new SelectorResult
-            {
-                Count = elementValues.Count,
-                ElementValues = elementValues
-            };
+            return document.QuerySelectorAll(selector);
         }
 
         private static string GetStringFromEncryptedB64(string encryptedTextBytesB64, string keyBytesB64)
@@ -84,5 +100,14 @@ namespace TestDas.Services
 
         private static string GetStringFromB64(string stringB64) =>
             Encoding.UTF8.GetString(Convert.FromBase64String(stringB64));
+
+        private static List<string> GetElementValues(List<Element> elements) =>
+            elements.Select(e => e.ValueAttribute)
+                           .ToList();
+        
+        private static List<string> GetEmails(string page) =>
+            EmailRegex.Matches(page)
+                .Select(e => e.Value)
+                .ToList();
     }
 }

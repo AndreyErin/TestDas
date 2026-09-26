@@ -2,6 +2,7 @@
 using Microsoft.AspNetCore.Mvc;
 using TestDas.Models;
 using TestDas.Services;
+using TestDas.Services.DAL;
 
 namespace TestDas.Controllers;
 
@@ -11,11 +12,13 @@ public class AnalysisController : ControllerBase
 {
     private readonly IValidator<AnalysisRequest> _validator;
     private readonly IParseService _parseService;
+    private readonly IElementsRepository _elementsRepository;
 
-    public AnalysisController(IValidator<AnalysisRequest> validator, IParseService parseService)
+    public AnalysisController(IValidator<AnalysisRequest> validator, IParseService parseService, IElementsRepository elementsRepository)
     {
         _validator = validator;
         _parseService = parseService;
+        _elementsRepository = elementsRepository;
     }
 
     [HttpPost]
@@ -37,13 +40,15 @@ public class AnalysisController : ControllerBase
             return BadRequest(analysisResponse);
         }
             
-        var result = await _parseService.ParseAsync(analysisRequest);
+        var parseResult = await _parseService.ParseAsync(analysisRequest);
 
-        if(result.Is_Error == 1)
+        if(parseResult.Analysis.Is_Error == 1)
         {
-            return BadRequest(result);
+            return BadRequest(parseResult.Analysis);
         }
 
-        return Ok(result);
+        await _elementsRepository.AddRange(parseResult.Elements);
+
+        return Ok(parseResult.Analysis);
     }
 }

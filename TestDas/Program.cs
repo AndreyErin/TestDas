@@ -2,6 +2,7 @@ using FluentValidation;
 using Microsoft.AspNetCore.Mvc;
 using TestDas.Models;
 using TestDas.Services;
+using TestDas.Services.DAL;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -13,6 +14,7 @@ builder.Services.Configure<ApiBehaviorOptions>(options =>
 builder.Services.AddOpenApi();
 builder.Services.AddScoped<IValidator<AnalysisRequest>, AnalysisRequestValidator>();
 builder.Services.AddScoped<IParseService, AnalysisParseService>();
+builder.Services.AddScoped<IElementsRepository, ElementRepository>();
 
 var app = builder.Build();
 
