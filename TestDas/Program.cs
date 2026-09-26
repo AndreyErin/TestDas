@@ -12,7 +12,7 @@ builder.Services.Configure<ApiBehaviorOptions>(options =>
 });
 builder.Services.AddOpenApi();
 builder.Services.AddScoped<IValidator<AnalysisRequest>, AnalysisRequestValidator>();
-
+builder.Services.AddScoped<IParseService, AnalysisParseService>();
 
 var app = builder.Build();
 
