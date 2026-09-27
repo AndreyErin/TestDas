@@ -19,9 +19,9 @@ namespace TestDas.Services
             try
             {
                 var url = GetStringFromB64(request.UrlB64);
+
                 var page = GetStringFromB64(request.PageB64);
 
-                
                 var htmlCollection = await GetHtmlCollection(page, request.Selector);
 
                 var elements = GetElements(htmlCollection, request.Attribute);

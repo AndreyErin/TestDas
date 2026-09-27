@@ -1,50 +1,52 @@
-﻿using System.Net;
+﻿using Npgsql;
+using System.Net;
 using TestDas.Models;
 
-namespace TestDas.Middlewares;
-
-public class ExceptionHandlerMiddleware
+namespace TestDas.Middlewares
 {
-    private readonly RequestDelegate _next;
-
-    public ExceptionHandlerMiddleware(RequestDelegate next)
+    public class ExceptionHandlerMiddleware
     {
-        _next = next;
-    }
+        private readonly RequestDelegate _next;
 
-    public async Task InvokeAsync(HttpContext httpContext)
-    {
-        try
+        public ExceptionHandlerMiddleware(RequestDelegate next)
         {
-            await _next(httpContext);
+            _next = next;
         }
-        catch (NotSupportedException ex)
+
+        public async Task InvokeAsync(HttpContext httpContext)
         {
-            await HandleException(httpContext, ex, HttpStatusCode.InternalServerError);
+            try
+            {
+                await _next(httpContext);
+            }
+            catch (NpgsqlException ex)
+            {
+                await HandleException(httpContext, ex, HttpStatusCode.InternalServerError);
+            }
+            // и тд...................
+            catch (Exception ex)
+            {
+                await HandleException(httpContext, ex, HttpStatusCode.InternalServerError);
+            }
         }
-        // и тд...................
-        catch (Exception ex)
+
+        private async Task HandleException(
+            HttpContext httpContext,
+            Exception exception,
+            HttpStatusCode httpStatusCode)
         {
-            await HandleException(httpContext, ex, HttpStatusCode.InternalServerError);
+
+            var response = new HtmlExtractionResponse
+            {
+                IsError = 1,
+                ErrorCode = exception.GetType().Name,
+                ErrorMessage = exception.Message
+            };
+
+            httpContext.Response.ContentType = "application/json";
+            httpContext.Response.StatusCode = (int)httpStatusCode;
+
+            await httpContext.Response.WriteAsJsonAsync(response);
         }
-    }
-
-    private async Task HandleException(
-        HttpContext httpContext,
-        Exception exception,
-        HttpStatusCode httpStatusCode)
-    {
-
-        var response = new HtmlExtractionResponse
-        {
-            IsError = 1,
-            ErrorCode = exception.GetType().Name,
-            ErrorMessage = exception.Message
-        };
-
-        httpContext.Response.ContentType = "application/json";
-        httpContext.Response.StatusCode = (int)httpStatusCode;
-
-        await httpContext.Response.WriteAsJsonAsync(response);
     }
 }
