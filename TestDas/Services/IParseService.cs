@@ -4,6 +4,6 @@ namespace TestDas.Services
 {
     public interface IParseService
     {
-        Task<ParseResult> ParseAsync(AnalysisRequest request);
+        Task<ParseResult> ParseAsync(HtmlExtractionRequest request);
     }
 }

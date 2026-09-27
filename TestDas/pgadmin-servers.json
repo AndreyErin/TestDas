@@ -1,0 +1,24 @@
+{
+  "Servers": {
+    "1": {
+      "Name": "Local Postgres (Docker)",
+      "Group": "Servers",
+      "Host": "db",
+      "Port": 5432,
+      "MaintenanceDB": "testdas",
+      "Username": "postgres",
+      "PassFile": "/var/lib/pgadmin/pgpass",
+      "SSLMode": "prefer"
+    },
+    "2": {
+      "Name": "Local Postgres (Docker) - postgres",
+      "Group": "Servers",
+      "Host": "db",
+      "Port": 5432,
+      "MaintenanceDB": "postgres",
+      "Username": "postgres",
+      "PassFile": "/var/lib/pgadmin/pgpass",
+      "SSLMode": "prefer"
+    }
+  }
+}

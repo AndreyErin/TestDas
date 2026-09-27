@@ -1,0 +1,65 @@
+services:
+  api:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: testdas-api
+    ports:
+      - "8090:8080"
+    environment:
+      - ASPNETCORE_ENVIRONMENT=Development
+      - ConnectionStrings__PostgresConnection=Host=db;Port=5432;Database=testdas;Username=postgres;Password=postgres
+      - DOTNET_USE_POLLING_FILE_WATCHER=1
+      - DOTNET_WATCH_RESTART_ON_RUDE_EDIT=1
+    volumes:
+      - .:/app
+      - /app/bin
+      - /app/obj
+    depends_on:
+      db:
+        condition: service_healthy
+
+  db:
+    image: postgres:18
+    container_name: testdas-db
+    environment:
+      POSTGRES_DB: testdas
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+    ports:
+      - "5432:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql
+      - ./initdb.sql:/docker-entrypoint-initdb.d/initdb.sql
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d testdas"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  pgadmin:
+    image: dpage/pgadmin4:latest
+    container_name: testdas-pgadmin
+    ports:
+      - "8080:80"
+    environment:
+      PGADMIN_CONFIG_SERVER_MODE: "False"
+      PGADMIN_CONFIG_MASTER_PASSWORD_REQUIRED: "False"
+      PGADMIN_DEFAULT_EMAIL: admin@example.com
+      PGADMIN_DEFAULT_PASSWORD: admin
+    volumes:
+      - ./pgadmin-servers.json:/pgadmin4/servers.json
+      - ./.pgpass:/tmp/.pgpass:ro
+    entrypoint: >
+      /bin/sh -c "
+      cp /tmp/.pgpass /var/lib/pgadmin/pgpass;
+      chown 5050:0 /var/lib/pgadmin/pgpass;
+      chmod 0600 /var/lib/pgadmin/pgpass;
+      /entrypoint.sh
+      "
+    depends_on:
+      db:
+        condition: service_healthy
+
+volumes:
+  pgdata:

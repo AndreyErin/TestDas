@@ -1,0 +1,10 @@
+bin/
+obj/
+.vs/
+.git/
+.gitignore
+*.user
+compose*.yml
+README.md
+initdb.sql
+pgadmin-servers.json

@@ -2,7 +2,7 @@
 {
     public class ParseResult
     {
-        public AnalysisResponse Analysis { get; set; }
+        public HtmlExtractionResponse HtmlExtractionResponse { get; set; }
         public List<Element> Elements { get; set; }
     }
 }

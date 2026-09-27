@@ -6,7 +6,7 @@ namespace TestDas.Services.DAL
 {
     public class ElementRepository : IElementsRepository
     {
-        private const string ConnectionString = "";
+        private const string ConnectionString = @"Host=db;Port=5432;Database=testdas;Username=postgres;Password=postgres";
 
         public async Task AddRange(List<Element> elements)
         {

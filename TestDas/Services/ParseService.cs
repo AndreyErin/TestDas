@@ -2,25 +2,24 @@
 using System.Text;
 using System.Text.RegularExpressions;
 using AngleSharp.Dom;
-using AngleSharp.Html.Dom;
 using AngleSharp.Html.Parser;
 using TestDas.Models;
 using Element = TestDas.Models.Element;
 
 namespace TestDas.Services
 {
-    public class AnalysisParseService : IParseService
+    public class ParseService : IParseService
     {
         private static readonly Regex EmailRegex = new(
             @"\b[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}\b",
             RegexOptions.Compiled | RegexOptions.CultureInvariant);
 
-        public async Task<ParseResult> ParseAsync(AnalysisRequest request)
+        public async Task<ParseResult> ParseAsync(HtmlExtractionRequest request)
         {
             try
             {
-                var url = GetStringFromB64(request.Url_B64);
-                var page = GetStringFromB64(request.Page_B64);
+                var url = GetStringFromB64(request.UrlB64);
+                var page = GetStringFromB64(request.PageB64);
 
                 
                 var htmlCollection = await GetHtmlCollection(page, request.Selector);
@@ -29,23 +28,23 @@ namespace TestDas.Services
 
                 var elementsValues = GetElementValues(elements);
   
-                var decryptedText = GetStringFromEncryptedB64(request.Encrypted_Text_Bytes_B64 ,request.Key_Bytes_B64);
+                var decryptedText = GetStringFromEncryptedB64(request.EncryptedTextBytesB64 ,request.KeyBytesB64);
 
                 var emailList = GetEmails(page);
 
-                var analysisResponse = new AnalysisResponse
+                var analysisResponse = new HtmlExtractionResponse
                 {
-                    Elements_Count = htmlCollection.Count,
-                    Emails_Count = emailList.Count,
+                    ElementsCount = htmlCollection.Count,
+                    EmailsCount = emailList.Count,
                     Url = url,
-                    Decrypted_Plain_Text = decryptedText,
-                    Elements_Attr_List = elementsValues,
-                    Emails_List = emailList
+                    DecryptedPlainText = decryptedText,
+                    ElementsAttrList = elementsValues,
+                    EmailsList = emailList
                 };
 
                 return new ParseResult
                 {
-                    Analysis = analysisResponse,
+                    HtmlExtractionResponse = analysisResponse,
                     Elements = elements
                 };
 
@@ -54,11 +53,11 @@ namespace TestDas.Services
             {
                 return new ParseResult
                 {
-                    Analysis = new AnalysisResponse
+                    HtmlExtractionResponse = new HtmlExtractionResponse
                     {
-                        Is_Error = 1,
-                        Error_Code = exception.GetType().Name,
-                        Error_Message = exception.Message
+                        IsError = 1,
+                        ErrorCode = exception.GetType().Name,
+                        ErrorMessage = exception.Message
                     },
                     Elements = []
                 };
@@ -69,8 +68,8 @@ namespace TestDas.Services
         {
             return htmlCollection.Select(e => new Element
             {
-                HtmlText = e.OuterHtml,
-                ValueAttribute = e.GetAttribute(attribute) ?? string.Empty
+                HtmlContent = e.OuterHtml,
+                AttributeValue = e.GetAttribute(attribute) ?? string.Empty
             }).ToList();
         }
 
@@ -102,7 +101,7 @@ namespace TestDas.Services
             Encoding.UTF8.GetString(Convert.FromBase64String(stringB64));
 
         private static List<string> GetElementValues(List<Element> elements) =>
-            elements.Select(e => e.ValueAttribute)
+            elements.Select(e => e.AttributeValue)
                            .ToList();
         
         private static List<string> GetEmails(string page) =>
